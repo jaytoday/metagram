@@ -22,10 +22,10 @@ const app = {
 
     this.deepExtend(config, options);
 
-    return new Promise( function (resolve, reject) {
+    return new Promise(function (resolve, reject) {
       const xhttp = new XMLHttpRequest();
 
-      xhttp.onreadystatechange = function() {
+      xhttp.onreadystatechange = function () {
         if (xhttp.readyState !== 4) return;
 
         if (xhttp.status === 200) {
@@ -37,10 +37,10 @@ const app = {
           });
         }
       };
-  
+
       xhttp.open(config.method, config.url, config.async);
       xhttp.setRequestHeader(config.header.type, config.header.value);
-  
+
       if (config.method === 'GET') {
         xhttp.send();
       } else if (config.method === 'POST') {
@@ -57,8 +57,8 @@ const app = {
   },
   liquidify: function (el) {
     const image = el.querySelector('img'),
-          imageSrc = image.getAttribute('src');
-  
+      imageSrc = image.getAttribute('src');
+
     image.style.display = 'none';
     el.style.background = `url("${imageSrc}") no-repeat center`;
     el.style.backgroundSize = 'cover';
@@ -70,13 +70,13 @@ const app = {
   },
   dateDiff: function (date1, date2 = new Date()) {
     const timeDiff = Math.abs(date1.getTime() - date2.getTime()),
-          secondsDiff = Math.ceil(timeDiff / (1000)),
-          minutesDiff = Math.floor(timeDiff / (1000 * 60)),
-          hoursDiff = Math.floor(timeDiff / (1000 * 60 * 60)),
-          daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24)),
-          weeksDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 7)),
-          monthsDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 7 * 4)),
-          yearsDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 7 * 4 * 12));
+      secondsDiff = Math.ceil(timeDiff / (1000)),
+      minutesDiff = Math.floor(timeDiff / (1000 * 60)),
+      hoursDiff = Math.floor(timeDiff / (1000 * 60 * 60)),
+      daysDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24)),
+      weeksDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 7)),
+      monthsDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 7 * 4)),
+      yearsDiff = Math.floor(timeDiff / (1000 * 60 * 60 * 24 * 7 * 4 * 12));
 
     let unit;
 
@@ -180,3 +180,98 @@ const app = {
     }
   }
 };
+
+// ⭐️ access Web3auth package from window.
+const web3authSdk = window.Web3auth
+let web3AuthInstance = null;
+
+function subscribeAuthEvents(web3auth) {
+  web3auth.on("connected", (data) => {
+    console.log("Yeah!, you are successfully logged in", data);
+    if (window.location.pathname !== "/hub-profile-info.html")
+      window.location.pathname = "/hub-profile-info.html";
+  });
+
+  web3auth.on("connecting", () => {
+    console.log("connecting");
+  });
+
+  web3auth.on("disconnected", () => {
+    console.log("disconnected");
+  });
+
+  web3auth.on("errored", (error) => {
+    console.log("some error or user have cancelled login request", error);
+  });
+
+  web3auth.on("MODAL_VISIBILITY", (isVisible) => {
+    console.log("modal visibility", isVisible)
+  });
+}
+
+(async function init() {
+
+  // STEP: 1
+  web3AuthInstance = new web3authSdk.Web3Auth({
+    uiConfig: {
+      appLogo: "https://images.web3auth.io/web3auth-logo-w.svg",
+      theme: "dark",
+      loginMethodsOrder: [],
+    },
+    chainConfig: {
+      chainNamespace: "eip155"
+    },
+    clientId: "<setup-your-id>" // get your clientId from https://dashboard.web3auth.io
+  });
+
+  // ⭐️ STEP: 2
+  subscribeAuthEvents(web3AuthInstance)
+
+  // STEP: 3
+  await web3AuthInstance.initModal();
+})();
+
+$("#login").click(async function (event) {
+  try {
+    // we will use this provider with web3 library in STEP 5.
+    const provider = await web3AuthInstance.connect()
+
+    // ⭐️ It will return user's social information if logged in with social login method
+    // else it will return empty object.
+    const user = await web3AuthInstance.getUserInfo();
+  } catch (error) {
+    $("#error").text(error.message);
+  }
+});
+
+$("#logout").click(async function (event) {
+  try {
+    // we will use this provider with web3 library in STEP 5.
+    window.location.pathname = "/";
+    const provider = await web3AuthInstance.logout();
+  } catch (error) {
+    $("#error").text(error.message);
+  }
+});
+
+// async function loginprompt(event) {
+//   try {
+//     console.log("test");
+//     // we will use this provider with web3 library in STEP 5.
+//     const provider = await web3AuthInstance.connect();
+
+//     // ⭐️ It will return user's social information if logged in with social login method
+//     // else it will return empty object.
+//     const user = await web3AuthInstance.getUserInfo();
+//   } catch (error) {
+//     $("#error").text(error.message);
+//   }
+// }
+
+async function initWeb3() {
+  // we can access this provider on `web3AuthInstance` only after user is logged in.
+  // This provider is also returned as a response of `connect` function in step 4. You can use either ways.
+  const web3 = new Web3(web3AuthInstance.provider);
+  const address = (await web3.eth.getAccounts())[0];
+  const balance = await web3.eth.getBalance(address);
+}
