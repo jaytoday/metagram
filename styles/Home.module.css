@@ -1,0 +1,14 @@
+.container {
+    padding: 0 2rem;
+}
+
+.site_layout_content {
+    min-height: 95vh;
+    padding: 24px;
+    padding-top: 5rem;
+}
+
+.logo {
+    float: left;
+    margin: 16px 24px 16px 0;
+}
